@@ -30,6 +30,26 @@ public class UserController {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
+        validateUser(user);
+        user.setId((int) nextId++);
+        users.put((long) user.getId(), user);
+        log.info("Пользователь добавлен: {}", user);
+        return user;
+    }
+
+    @PutMapping
+    public User updateUser(@Valid @RequestBody User updatedUser) {
+        if (!users.containsKey((long) updatedUser.getId())) {
+            log.warn("Попытка обновить несуществующего пользователя с id={}", updatedUser.getId());
+            throw new NoSuchElementException("Пользователь с id=" + updatedUser.getId() + " не найден");
+        }
+        validateUser(updatedUser);
+        users.put((long) updatedUser.getId(), updatedUser);
+        log.info("Пользователь обновлён: {}", updatedUser);
+        return updatedUser;
+    }
+
+    private void validateUser(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
             log.warn("Ошибка валидации email: {}", user.getEmail());
             throw new ValidationException("Некорректный email");
@@ -42,33 +62,6 @@ public class UserController {
             log.warn("Ошибка валидации даты рождения: {}", user.getBirthday());
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
-        user.setId((int) nextId++);
-        users.put((long) user.getId(), user);
-        log.info("Пользователь добавлен: {}", user);
-        return user;
-    }
-
-    @PutMapping
-    public User updateUser(@Valid @RequestBody User updatedUser) {
-        if (!users.containsKey((long) updatedUser.getId())) {
-            log.warn("Попытка обновить несуществующего пользователя с id={}", updatedUser.getId());
-            throw new NoSuchElementException("Пользоват��ль с id=" + updatedUser.getId() + " не найден");
-        }
-        if (updatedUser.getEmail() == null || updatedUser.getEmail().isBlank() || !updatedUser.getEmail().contains("@")) {
-            log.warn("Ошибка валидации email: {}", updatedUser.getEmail());
-            throw new ValidationException("Некорректный email");
-        }
-        if (updatedUser.getLogin() == null || updatedUser.getLogin().isBlank() || updatedUser.getLogin().contains(" ")) {
-            log.warn("Ошибка валидации login: {}", updatedUser.getLogin());
-            throw new ValidationException("Некорректный логин");
-        }
-        if (updatedUser.getBirthday() == null || updatedUser.getBirthday().isAfter(java.time.LocalDate.now())) {
-            log.warn("Ошибка валидации даты рождения: {}", updatedUser.getBirthday());
-            throw new ValidationException("Дата рождения не может быть в будущем");
-        }
-        users.put((long) updatedUser.getId(), updatedUser);
-        log.info("Пользователь обновлён: {}", updatedUser);
-        return updatedUser;
     }
 
 }
