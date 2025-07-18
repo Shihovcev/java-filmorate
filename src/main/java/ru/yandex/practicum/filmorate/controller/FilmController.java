@@ -3,9 +3,11 @@ package ru.yandex.practicum.filmorate.controller;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.*;
 
@@ -13,33 +15,57 @@ import java.util.*;
 @RequestMapping("/films")
 public class FilmController {
     private static final Logger log = LoggerFactory.getLogger(FilmController.class);
-    private final Map<Long, Film> films = new HashMap<>();
-    private long nextId = 1;
+    private final FilmService filmService;
+
+    @Autowired
+    public FilmController(FilmService filmService) {
+        this.filmService = filmService;
+    }
 
     @GetMapping
     public List<Film> getAllFilms() {
-        return new ArrayList<>(films.values());
+        return filmService.getAllFilms();
     }
 
     @PostMapping
     public Film addFilm(@Valid @RequestBody Film film) {
         validateFilm(film);
-        film.setId((int) nextId++);
-        films.put((long) film.getId(), film);
-        log.info("Фильм добавлен: {}", film);
-        return film;
+        Film added = filmService.addFilm(film);
+        log.info("Фильм добавлен: {}", added);
+        return added;
     }
 
     @PutMapping
     public Film updateFilm(@Valid @RequestBody Film film) {
-        if (!films.containsKey((long) film.getId())) {
+        if (filmService.getFilmById(film.getId()).isEmpty()) {
             log.warn("Попытка обновить несуществующий фильм с id={}", film.getId());
             throw new NoSuchElementException("Фильм с id=" + film.getId() + " не найден");
         }
         validateFilm(film);
-        films.put((long) film.getId(), film);
-        log.info("Фильм обновлён: {}", film);
-        return film;
+        Film updated = filmService.updateFilm(film);
+        log.info("Фильм обновлён: {}", updated);
+        return updated;
+    }
+
+    @GetMapping("/{id}")
+    public Film getFilmById(@PathVariable long id) {
+        return filmService.getFilmById(id)
+                .orElseThrow(() -> new NoSuchElementException("Фильм с id=" + id + " не найден"));
+    }
+
+    @PutMapping("/{id}/like/{userId}")
+    public void addLike(@PathVariable long id, @PathVariable long userId) {
+        filmService.addLike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    public void removeLike(@PathVariable long id, @PathVariable long userId) {
+        filmService.removeLike(id, userId);
+    }
+
+    @GetMapping("/popular")
+    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+        return filmService.getTopFilms(count);
     }
 
     private void validateFilm(Film film) {
