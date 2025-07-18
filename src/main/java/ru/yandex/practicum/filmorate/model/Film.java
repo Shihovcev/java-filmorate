@@ -15,6 +15,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(of = { "id" })
 @AllArgsConstructor
+@NoArgsConstructor
 public class Film {
     private int id;
     @NotBlank(message = "Название не может быть пустым")
@@ -27,7 +28,4 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Double duration;
     private Set<Long> likes = new HashSet<>();
-
-
-
 }
