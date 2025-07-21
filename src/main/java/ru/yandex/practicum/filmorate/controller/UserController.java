@@ -7,7 +7,6 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Slf4j
 @RestController
