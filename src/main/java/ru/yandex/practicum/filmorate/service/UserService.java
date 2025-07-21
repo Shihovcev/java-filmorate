@@ -1,25 +1,26 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.NoSuchElementException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private final UserStorage userStorage;
 
-    @Autowired
-    public UserService(UserStorage userStorage) {
-        this.userStorage = userStorage;
-    }
-
     public void addFriend(long userId, long friendId) {
-        User user = userStorage.getUserById(userId).orElseThrow();
-        User friend = userStorage.getUserById(friendId).orElseThrow();
+        User user = getUserByIdOrThrow(userId);
+        User friend = getUserByIdOrThrow(friendId);
         user.getFriends().add(friendId);
         friend.getFriends().add(userId);
         userStorage.updateUser(user);
@@ -27,8 +28,8 @@ public class UserService {
     }
 
     public void removeFriend(long userId, long friendId) {
-        User user = userStorage.getUserById(userId).orElseThrow();
-        User friend = userStorage.getUserById(friendId).orElseThrow();
+        User user = getUserByIdOrThrow(userId);
+        User friend = getUserByIdOrThrow(friendId);
         user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
         userStorage.updateUser(user);
@@ -36,13 +37,12 @@ public class UserService {
     }
 
     public List<User> getCommonFriends(long userId, long otherId) {
-        User user = userStorage.getUserById(userId).orElseThrow();
-        User other = userStorage.getUserById(otherId).orElseThrow();
-        Set<Long> commonIds = user.getFriends();
-        commonIds.retainAll(other.getFriends());
-        return commonIds.stream()
-                .map(id -> userStorage.getUserById(id).orElse(null))
-                .filter(u -> u != null)
+        User user = getUserByIdOrThrow(userId);
+        User other = getUserByIdOrThrow(otherId);
+        return user.getFriends().stream()
+                .filter(other.getFriends()::contains)
+                .map(friendId -> userStorage.getUserById(friendId).orElse(null))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -51,14 +51,45 @@ public class UserService {
     }
 
     public User addUser(User user) {
+        validateUser(user);
         return userStorage.addUser(user);
     }
 
     public User updateUser(User user) {
+        getUserByIdOrThrow(user.getId());
+        validateUser(user);
         return userStorage.updateUser(user);
+    }
+
+    private void validateUser(User user) {
+        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
+            log.warn("Ошибка валидации email: {}", user.getEmail());
+            throw new ru.yandex.practicum.filmorate.exception.ValidationException("Некорректный email");
+        }
+        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
+            log.warn("Ошибка валидации login: {}", user.getLogin());
+            throw new ValidationException("Некорректный логин");
+        }
+        if (user.getBirthday() == null || user.getBirthday().isAfter(java.time.LocalDate.now())) {
+            log.warn("Ошибка валидации даты рождения: {}", user.getBirthday());
+            throw new ValidationException("Дата рождения не может быть в будущем");
+        }
     }
 
     public java.util.Optional<User> getUserById(long id) {
         return userStorage.getUserById(id);
+    }
+
+    public List<User> getFriends(long userId) {
+        User user = getUserByIdOrThrow(userId);
+        return user.getFriends().stream()
+                .map(friendId -> userStorage.getUserById(friendId).orElse(null))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    public User getUserByIdOrThrow(long id) {
+        return userStorage.getUserById(id)
+                .orElseThrow(() -> new NoSuchElementException("Пользователь с id=" + id + " не найден"));
     }
 }
