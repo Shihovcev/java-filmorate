@@ -5,8 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Film.
@@ -14,6 +15,7 @@ import java.time.LocalDate;
 @Data
 @EqualsAndHashCode(of = { "id" })
 @AllArgsConstructor
+@NoArgsConstructor
 public class Film {
     private int id;
     @NotBlank(message = "Название не может быть пустым")
@@ -25,5 +27,5 @@ public class Film {
     @NotNull(message = "Продолжительность не может быть пустой")
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Double duration;
-
+    private Set<Long> likes = new HashSet<>();
 }
