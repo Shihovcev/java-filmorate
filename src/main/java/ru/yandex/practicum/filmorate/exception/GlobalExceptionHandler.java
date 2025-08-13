@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 import java.util.NoSuchElementException;
 
 @Slf4j
@@ -40,9 +41,20 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(message));
     }
 
+    // Общий обработчик, который ловит все остальные исключения, но исключаем ResponseStatusException,
+    // чтобы не перекрывать уже заданные статусы (404, 400)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleOtherExceptions(Exception ex) {
         log.error("Internal server error", ex);
+
+        // Если это ResponseStatusException, берём статус и сообщение из него
+        if (ex instanceof org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity
+                    .status(rse.getStatusCode())
+                    .body(new ErrorResponse(rse.getReason()));
+        }
+
+        // Иначе возвращаем 500
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("Внутренняя ошибка сервера: " + ex.getMessage()));
