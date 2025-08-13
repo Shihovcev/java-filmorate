@@ -18,7 +18,7 @@ import ru.yandex.practicum.filmorate.validation.ReleaseDateValid;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Film {
-    private int id;
+    private Integer id;
     @NotBlank(message = "Название не может быть пустым")
     private String name;
     public static final int MAX_DESCRIPTION_LENGTH = 200;

@@ -2,47 +2,49 @@ package ru.yandex.practicum.filmorate.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(ru.yandex.practicum.filmorate.exception.ValidationException.class)
-    public void handleValidationException(ru.yandex.practicum.filmorate.exception.ValidationException ex) {
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(ValidationException ex) {
         log.warn("Validation error: {}", ex.getMessage());
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
     }
 
-    @ExceptionHandler({java.util.NoSuchElementException.class})
-    public void handleNotFoundException(java.util.NoSuchElementException ex) {
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ErrorResponse> handleNotFoundException(NoSuchElementException ex) {
         log.warn("Not found: {}", ex.getMessage());
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public void handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> java.util.Objects.requireNonNullElse(fieldError.getDefaultMessage(), "Ошибка валидации"))
                 .findFirst()
                 .orElse("Ошибка валидации");
         log.warn("Validation error (invalid argument): {}", message);
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(message));
     }
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public void handleResponseStatusException(ResponseStatusException ex) {
-        throw ex;
-    }
-
-    @ExceptionHandler(Throwable.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public void handleOtherExceptions(Throwable ex) {
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleOtherExceptions(Exception ex) {
         log.error("Internal server error", ex);
-        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Внутренняя ошибка сервера: " + ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Внутренняя ошибка сервера: " + ex.getMessage()));
     }
 }
