@@ -1,62 +1,77 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.springframework.web.bind.annotation.*;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import jakarta.validation.Valid;
+
 import java.util.List;
 
 @Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/users")
-@RequiredArgsConstructor
 public class UserController {
+
     private final UserService userService;
 
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
-    }
-
     @PostMapping
-    public User addUser(@Valid @RequestBody User user) {
-        User added = userService.addUser(user);
-        log.info("Пользователь добавлен: {}", added);
-        return added;
+    public ResponseEntity<User> createUser(@Valid @RequestBody final User user) {
+        User createdUser = userService.createUser(user);
+        log.info("Пользователь добавлен: {}", createdUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
     @PutMapping
-    public User updateUser(@Valid @RequestBody User updatedUser) {
-        User updated = userService.updateUser(updatedUser);
-        log.info("Пользователь обновлён: {}", updated);
-        return updated;
+    public ResponseEntity<User> updateUser(@Valid @RequestBody final User user) {
+        User updatedUser = userService.updateUser(user);
+        log.info("Пользователь обновлён: {}", updatedUser);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<User>> getAllUsers() {
+        log.info("Получение всех пользователей");
+        List<User> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
 
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable long id) {
-        return userService.getUserByIdOrThrow(id);
+    public ResponseEntity<User> getUserById(@PathVariable int id) {
+        log.info("Получение пользователя по id={}", id);
+        User user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
     }
 
     @PutMapping("/{id}/friends/{friendId}")
-    public void addFriend(@PathVariable long id, @PathVariable long friendId) {
+    public ResponseEntity<Void> addFriend(@PathVariable int id, @PathVariable int friendId) {
+        log.info("Добавление пользователя {} в друзья к пользователю {}", friendId, id);
         userService.addFriend(id, friendId);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
-    public void removeFriend(@PathVariable long id, @PathVariable long friendId) {
+    public ResponseEntity<Void> removeFriend(@PathVariable int id, @PathVariable int friendId) {
+        log.info("Удаление пользователя {} из друзей пользователя {}", friendId, id);
         userService.removeFriend(id, friendId);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{id}/friends")
-    public List<User> getFriends(@PathVariable long id) {
-        return userService.getFriends(id);
+    public ResponseEntity<List<User>> getFriends(@PathVariable int id) {
+        log.info("Получение друзей пользователя {}", id);
+        List<User> friends = userService.getFriends(id);
+        return ResponseEntity.ok(friends);
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")
-    public List<User> getCommonFriends(@PathVariable long id, @PathVariable long otherId) {
-        return userService.getCommonFriends(id, otherId);
+    public ResponseEntity<List<User>> getCommonFriends(@PathVariable int id, @PathVariable int otherId) {
+        log.info("Получение общих друзей пользователей {} и {}", id, otherId);
+        List<User> commonFriends = userService.getCommonFriends(id, otherId);
+        return ResponseEntity.ok(commonFriends);
     }
-
 }
